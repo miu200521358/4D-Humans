@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import torch
 import argparse
@@ -10,6 +11,60 @@ from hmr2.models import HMR2, download_models, load_hmr2, DEFAULT_CHECKPOINT
 from hmr2.utils import recursive_to
 from hmr2.datasets.vitdet_dataset import ViTDetDataset, DEFAULT_MEAN, DEFAULT_STD
 from hmr2.utils.renderer import Renderer, cam_crop_to_full
+
+JOINT_NAMES = [
+# 25 OpenPose joints (in the order provided by OpenPose)
+'OP Nose',
+'OP Neck',
+'OP RShoulder',
+'OP RElbow',
+'OP RWrist',
+'OP LShoulder',
+'OP LElbow',
+'OP LWrist',
+'OP MidHip',
+'OP RHip',
+'OP RKnee',
+'OP RAnkle',
+'OP LHip',
+'OP LKnee',
+'OP LAnkle',
+'OP REye',
+'OP LEye',
+'OP REar',
+'OP LEar',
+'OP LBigToe',
+'OP LSmallToe',
+'OP LHeel',
+'OP RBigToe',
+'OP RSmallToe',
+'OP RHeel',
+# 24 Ground Truth joints (superset of joints from different datasets)
+'Right Ankle',
+'Right Knee',
+'Right Hip',
+'Left Hip',
+'Left Knee',
+'Left Ankle',
+'Right Wrist',
+'Right Elbow',
+'Right Shoulder',
+'Left Shoulder',
+'Left Elbow',
+'Left Wrist',
+'Neck (LSP)',
+'Top of Head (LSP)',
+'Pelvis (MPII)',
+'Thorax (MPII)',
+'Spine (H36M)',
+'Jaw (H36M)',
+'Head (H36M)',
+'Nose',
+'Left Eye',
+'Right Eye',
+'Left Ear',
+'Right Ear'
+]
 
 LIGHT_BLUE=(0.65098039,  0.74117647,  0.85882353)
 
@@ -62,10 +117,15 @@ def main():
 
     # Make output directory if it does not exist
     os.makedirs(args.out_folder, exist_ok=True)
+    out_fn = os.path.join(args.out_folder, 'out.json')
+    # json file
+    out_dict = {}
 
     # Iterate over all images in folder
-    for img_path in Path(args.img_folder).glob('*.png'):
+    for img_path in Path(args.img_folder).glob('*.jpg'):
         img_cv2 = cv2.imread(str(img_path))
+        img_fn, _ = os.path.splitext(os.path.basename(img_path))
+        out_dict[img_fn] = {}
 
         # Detect humans in image
         det_out = detector(img_cv2)
@@ -97,71 +157,84 @@ def main():
             batch_size = batch['img'].shape[0]
             for n in range(batch_size):
                 # Get filename from path img_path
-                img_fn, _ = os.path.splitext(os.path.basename(img_path))
                 person_id = int(batch['personid'][n])
-                white_img = (torch.ones_like(batch['img'][n]).cpu() - DEFAULT_MEAN[:,None,None]/255) / (DEFAULT_STD[:,None,None]/255)
+                # white_img = (torch.ones_like(batch['img'][n]).cpu() - DEFAULT_MEAN[:,None,None]/255) / (DEFAULT_STD[:,None,None]/255)
                 input_patch = batch['img'][n].cpu() * (DEFAULT_STD[:,None,None]/255) + (DEFAULT_MEAN[:,None,None]/255)
                 input_patch = input_patch.permute(1,2,0).numpy()
 
-                regression_img = renderer(out['pred_vertices'][n].detach().cpu().numpy(),
-                                        out['pred_cam_t'][n].detach().cpu().numpy(),
-                                        batch['img'][n],
-                                        mesh_base_color=LIGHT_BLUE,
-                                        scene_bg_color=(1, 1, 1),
-                                        )
+                # regression_img = renderer(out['pred_vertices'][n].detach().cpu().numpy(),
+                #                         out['pred_cam_t'][n].detach().cpu().numpy(),
+                #                         batch['img'][n],
+                #                         mesh_base_color=LIGHT_BLUE,
+                #                         scene_bg_color=(1, 1, 1),
+                #                         )
 
-                final_img = np.concatenate([input_patch, regression_img], axis=1)
+                # final_img = np.concatenate([input_patch, regression_img], axis=1)
 
-                if args.side_view:
-                    side_img = renderer(out['pred_vertices'][n].detach().cpu().numpy(),
-                                            out['pred_cam_t'][n].detach().cpu().numpy(),
-                                            white_img,
-                                            mesh_base_color=LIGHT_BLUE,
-                                            scene_bg_color=(1, 1, 1),
-                                            side_view=True)
-                    final_img = np.concatenate([final_img, side_img], axis=1)
+                # if args.side_view:
+                #     side_img = renderer(out['pred_vertices'][n].detach().cpu().numpy(),
+                #                             out['pred_cam_t'][n].detach().cpu().numpy(),
+                #                             white_img,
+                #                             mesh_base_color=LIGHT_BLUE,
+                #                             scene_bg_color=(1, 1, 1),
+                #                             side_view=True)
+                #     final_img = np.concatenate([final_img, side_img], axis=1)
 
-                if args.top_view:
-                    top_img = renderer(out['pred_vertices'][n].detach().cpu().numpy(),
-                                            out['pred_cam_t'][n].detach().cpu().numpy(),
-                                            white_img,
-                                            mesh_base_color=LIGHT_BLUE,
-                                            scene_bg_color=(1, 1, 1),
-                                            top_view=True)
-                    final_img = np.concatenate([final_img, top_img], axis=1)
+                # if args.top_view:
+                #     top_img = renderer(out['pred_vertices'][n].detach().cpu().numpy(),
+                #                             out['pred_cam_t'][n].detach().cpu().numpy(),
+                #                             white_img,
+                #                             mesh_base_color=LIGHT_BLUE,
+                #                             scene_bg_color=(1, 1, 1),
+                #                             top_view=True)
+                #     final_img = np.concatenate([final_img, top_img], axis=1)
 
-                cv2.imwrite(os.path.join(args.out_folder, f'{img_fn}_{person_id}.png'), 255*final_img[:, :, ::-1])
+                # cv2.imwrite(os.path.join(args.out_folder, f'{img_fn}_{person_id}.png'), 255*final_img[:, :, ::-1])
 
                 # Add all verts and cams to list
                 verts = out['pred_vertices'][n].detach().cpu().numpy()
+                joints = out['pred_keypoints_3d'][n].detach().cpu().numpy()
                 cam_t = pred_cam_t_full[n]
                 all_verts.append(verts)
                 all_cam_t.append(cam_t)
 
-                # Save all meshes to disk
-                if args.save_mesh:
-                    camera_translation = cam_t.copy()
-                    tmesh = renderer.vertices_to_trimesh(verts, camera_translation, LIGHT_BLUE)
-                    tmesh.export(os.path.join(args.out_folder, f'{img_fn}_{person_id}.obj'))
+                # # Save all meshes to disk
+                # if args.save_mesh:
+                #     camera_translation = cam_t.copy()
+                #     tmesh = renderer.vertices_to_trimesh(verts, camera_translation, LIGHT_BLUE)
+                #     tmesh.export(os.path.join(args.out_folder, f'{img_fn}_{person_id}.obj'))
 
-        # Render front view
-        if args.full_frame and len(all_verts) > 0:
-            misc_args = dict(
-                mesh_base_color=LIGHT_BLUE,
-                scene_bg_color=(1, 1, 1),
-                focal_length=scaled_focal_length,
-            )
-            cam_view = renderer.render_rgba_multiple(all_verts, cam_t=all_cam_t, render_res=img_size[n], **misc_args)
+                # json file
+                joints_dict = {}
+                for jname, joint in zip(JOINT_NAMES, joints):
+                    joints_dict[jname] = {"x": float(joint[0]), "y": float(joint[1]), "z": float(joint[2])}
 
-            # Overlay image
-            input_img = img_cv2.astype(np.float32)[:,:,::-1]/255.0
-            input_img = np.concatenate([input_img, np.ones_like(input_img[:,:,:1])], axis=2) # Add alpha channel
-            input_img_overlay = input_img[:,:,:3] * (1-cam_view[:,:,3:]) + cam_view[:,:,:3] * cam_view[:,:,3:]
+                out_dict[img_fn][str(person_id)] = {
+                    "cam_t": {"x": float(cam_t[0]), "y": float(cam_t[1]), "z": float(cam_t[2])},
+                    "joints": joints_dict,
+                }
 
-            cv2.imwrite(os.path.join(args.out_folder, f'{img_fn}_all.png'), 255*input_img_overlay[:, :, ::-1])
+        # # Render front view
+        # if args.full_frame and len(all_verts) > 0:
+        #     misc_args = dict(
+        #         mesh_base_color=LIGHT_BLUE,
+        #         scene_bg_color=(1, 1, 1),
+        #         focal_length=scaled_focal_length,
+        #     )
+        #     cam_view = renderer.render_rgba_multiple(all_verts, cam_t=all_cam_t, render_res=img_size[n], **misc_args)
+
+        #     # Overlay image
+        #     input_img = img_cv2.astype(np.float32)[:,:,::-1]/255.0
+        #     input_img = np.concatenate([input_img, np.ones_like(input_img[:,:,:1])], axis=2) # Add alpha channel
+        #     input_img_overlay = input_img[:,:,:3] * (1-cam_view[:,:,3:]) + cam_view[:,:,:3] * cam_view[:,:,3:]
+
+        #     cv2.imwrite(os.path.join(args.out_folder, f'{img_fn}_all.png'), 255*input_img_overlay[:, :, ::-1])
 
         end = time.time()
         print(end - start)
+
+    with open(out_fn, 'w') as f:
+        json.dump(out_dict, f, ensure_ascii=False, indent=4)
 
 if __name__ == '__main__':
     main()

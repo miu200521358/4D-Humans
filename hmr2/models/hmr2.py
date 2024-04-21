@@ -4,7 +4,7 @@ from typing import Any, Dict, Mapping, Tuple
 
 from yacs.config import CfgNode
 
-from ..utils import SkeletonRenderer, MeshRenderer
+# from ..utils import SkeletonRenderer, MeshRenderer
 from ..utils.geometry import aa_to_rotmat, perspective_projection
 from ..utils.pylogger import get_pylogger
 from .backbones import create_backbone
@@ -54,12 +54,12 @@ class HMR2(pl.LightningModule):
         # Buffer that shows whetheer we need to initialize ActNorm layers
         self.register_buffer('initialized', torch.tensor(False))
         # Setup renderer for visualization
-        if init_renderer:
-            self.renderer = SkeletonRenderer(self.cfg)
-            self.mesh_renderer = MeshRenderer(self.cfg, faces=self.smpl.faces)
-        else:
-            self.renderer = None
-            self.mesh_renderer = None
+        # if init_renderer:
+        #     self.renderer = SkeletonRenderer(self.cfg)
+        #     self.mesh_renderer = MeshRenderer(self.cfg, faces=self.smpl.faces)
+        # else:
+        self.renderer = None
+        self.mesh_renderer = None
 
         # Disable automatic optimization since we use adversarial training
         self.automatic_optimization = False
@@ -237,12 +237,13 @@ class HMR2(pl.LightningModule):
         #                            2 * gt_keypoints_2d[:num_images],
         #                            images=images[:num_images],
         #                            camera_translation=pred_cam_t[:num_images])
-        predictions = self.mesh_renderer.visualize_tensorboard(pred_vertices[:num_images].cpu().numpy(),
-                                                               pred_cam_t[:num_images].cpu().numpy(),
-                                                               images[:num_images].cpu().numpy(),
-                                                               pred_keypoints_2d[:num_images].cpu().numpy(),
-                                                               gt_keypoints_2d[:num_images].cpu().numpy(),
-                                                               focal_length=focal_length[:num_images].cpu().numpy())
+        if self.mesh_renderer:
+            predictions = self.mesh_renderer.visualize_tensorboard(pred_vertices[:num_images].cpu().numpy(),
+                                                                pred_cam_t[:num_images].cpu().numpy(),
+                                                                images[:num_images].cpu().numpy(),
+                                                                pred_keypoints_2d[:num_images].cpu().numpy(),
+                                                                gt_keypoints_2d[:num_images].cpu().numpy(),
+                                                                focal_length=focal_length[:num_images].cpu().numpy())
         if write_to_summary_writer:
             summary_writer.add_image('%s/predictions' % mode, predictions, step_count)
 

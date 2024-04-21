@@ -1,0 +1,129 @@
+{
+    // IntelliSense を使用して利用可能な属性を学べます。
+    // 既存の属性の説明をホバーして表示します。
+    // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "demo",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/demo.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--img_folder",
+                "example_data/images2",
+                "--out_folder",
+                "example_data/images2",
+                "--batch_size",
+                "48",
+                "--side_view",
+            ]
+        },
+        {
+            "name": "output",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/output.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--img_folder",
+                "example_data/images",
+                "--out_folder",
+                "demo_out",
+            ]
+        },
+        {
+            "name": "output2",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/output2.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--pkl_path",
+                "outputs/results/demo_images2.pkl",
+                "--out_folder",
+                "example_data/snobbism_1080-1380/tracking_results",
+            ]
+        },
+        {
+            "name": "demo2",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/demo2.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--video",
+                "/mnt/c/MMD/4D-Humans/example_data/images2/sakura1.mp4",
+                "--output_dir",
+                "demo_outputs",
+                "--batch_size",
+                "48",
+            ]
+        },
+        {
+            "name": "output rot",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/output4.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--target_dir",
+                "demo_outputs/snobbism_cut",
+            ]
+        },
+        {
+            "name": "output leg ik",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/output5.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--target_dir",
+                "demo_outputs/snobbism_300-2300",
+            ]
+        },
+        {
+            "name": "output arm ik",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/output6.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--target_dir",
+                "demo_outputs/snobbism_400-600",
+            ]
+        },
+        {
+            "name": "output ground",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/output8.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--target_dir",
+                "demo_outputs/snobbism_400-600",
+            ]
+        },
+        {
+            "name": "output reduce",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/output9.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--target_dir",
+                "demo_outputs/snobbism_400-600",
+            ]
+        },
+    ]
+}
